@@ -7,9 +7,10 @@ Twitter (twikit) 定时时间线推送插件
 """
 import asyncio
 import json
+import random
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from nonebot import require, logger, get_bot
@@ -27,7 +28,7 @@ SUBSCRIBES_FILE = RESOURCE_PATH / "subscribes.json"
 DATA_FILE = RESOURCE_PATH / "data.json"
 
 # 同一接口的最小调用间隔（秒）
-API_INTERVAL = 30
+API_INTERVAL = 100
 _last_call: dict[str, float] = {}
 _lock = asyncio.Lock()
 
@@ -88,7 +89,7 @@ def _format_tweet(tweet_data: dict, user_info: dict) -> str:
     return f"{header}\n{body}{url}"
 
 
-@scheduler.scheduled_job("interval", minutes=2, id="twitter_twikit_timeline")
+@scheduler.scheduled_job("interval", minutes=7, id="twitter_twikit_timeline")
 async def twitter_twikit_timeline_task() -> None:
     async with _lock:
         await _do_timeline()
@@ -202,6 +203,9 @@ async def _do_timeline() -> None:
                         await bot.send_group_msg(group_id=group_id, message=msg_text)
             except Exception as e:
                 logger.warning(f"twitter_twikit: send to group failed: {e}")
+        
+        # 每个用户处理完后随机等待，大幅降低频率
+        await asyncio.sleep(random.randint(20, 40))
 
     if data_changed:
         try:

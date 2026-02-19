@@ -95,8 +95,8 @@ class TwikitManager:
                 timeline_data[parsed['id']] = parsed
         return timeline_data
 
-    def _parse_tweet(self, tweet) -> Optional[Dict]:
-        if not tweet:
+    def _parse_tweet(self, tweet, depth=0) -> Optional[Dict]:
+        if not tweet or depth > 2:
             return None
 
         tweet_data = {
@@ -124,18 +124,21 @@ class TwikitManager:
                         if url:
                             tweet_data['videos'].append(url)
 
-        retweeted = getattr(tweet, 'retweeted_tweet', None)
-        if retweeted:
-            tweet_data['tweet_type'] = 'retweet'
-            rt_parsed = self._parse_tweet(retweeted)
-            rt_user = self._parse_user(retweeted.user) if getattr(retweeted, 'user', None) else {}
-            tweet_data['retweet_data'] = {'user_info': rt_user, 'data': rt_parsed or {}}
-        else:
-            quoted = getattr(tweet, 'quote', None)
-            if quoted:
-                tweet_data['tweet_type'] = 'quote'
-                q_parsed = self._parse_tweet(quoted)
-                q_user = self._parse_user(quoted.user) if getattr(quoted, 'user', None) else {}
-                tweet_data['quote_data'] = {'user_info': q_user, 'data': q_parsed or {}}
+        try:
+            retweeted = getattr(tweet, 'retweeted_tweet', None)
+            if retweeted and depth < 2:
+                tweet_data['tweet_type'] = 'retweet'
+                rt_parsed = self._parse_tweet(retweeted, depth + 1)
+                rt_user = self._parse_user(retweeted.user) if getattr(retweeted, 'user', None) else {}
+                tweet_data['retweet_data'] = {'user_info': rt_user, 'data': rt_parsed or {}}
+            else:
+                quoted = getattr(tweet, 'quote', None)
+                if quoted and depth < 2:
+                    tweet_data['tweet_type'] = 'quote'
+                    q_parsed = self._parse_tweet(quoted, depth + 1)
+                    q_user = self._parse_user(quoted.user) if getattr(quoted, 'user', None) else {}
+                    tweet_data['quote_data'] = {'user_info': q_user, 'data': q_parsed or {}}
+        except Exception as e:
+            logger.warning(f"Error parsing nested tweet (depth={depth}): {e}")
 
         return tweet_data

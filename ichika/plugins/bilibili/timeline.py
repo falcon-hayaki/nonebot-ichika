@@ -93,7 +93,7 @@ async def _do_dynamic() -> None:
             relation_info_raw = await user_obj.get_relation_info()
             user_info = BilibiliApiManager.parse_user_info(user_info_raw, relation_info_raw)
         except Exception as e:
-            logger.warning(f"bilibili: get_user_info {uid} failed: {e}")
+            logger.exception(f"bilibili: get_user_info {uid} failed")
             continue
 
         data.setdefault("users", {})[uid_str] = user_info
@@ -104,7 +104,7 @@ async def _do_dynamic() -> None:
             dynamic_raw = await user_obj.get_dynamics_new()
             dynamic_id_list, dynamics = BilibiliApiManager.parse_timeline(dynamic_raw)
         except Exception as e:
-            logger.warning(f"bilibili: get_dynamic {uid} failed: {e}")
+            logger.exception(f"bilibili: get_dynamic {uid} failed")
             continue
 
         if not dynamic_id_list:

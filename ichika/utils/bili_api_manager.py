@@ -13,10 +13,10 @@ class BilibiliApiManager:
         :param config: dict with keys: sessdata, bili_jct, buvid3, dedeuserid
         """
         self.credential = Credential(
-            sessdata=config.get("sessdata"),
-            bili_jct=config.get("bili_jct"),
-            buvid3=config.get("buvid3"),
-            dedeuserid=config.get("dedeuserid"),
+            sessdata=str(config.get("sessdata") or ""),
+            bili_jct=str(config.get("bili_jct") or ""),
+            buvid3=str(config.get("buvid3") or ""),
+            dedeuserid=str(config.get("dedeuserid") or ""),
         )
 
     def get_user(self, uid: int) -> user.User:

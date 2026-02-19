@@ -36,6 +36,7 @@ nonebot-adapter-onebot = [
 "@local" = []
 nonebot-plugin-status = ["nonebot_plugin_status"]
 nonebot-plugin-apscheduler = ["nonebot_plugin_apscheduler"]
+# ichika/plugins 目录下的插件由 plugin_dirs 自动发现，无需在此重复列出
 [tool.ruff]
 line-length = 88
 target-version = "py39"

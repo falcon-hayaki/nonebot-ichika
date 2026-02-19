@@ -100,7 +100,7 @@ async def _do_timeline() -> None:
         return
 
     try:
-        subscribes: list[dict] = await read_json(SUBSCRIBES_FILE) or []
+        subscribes: dict = await read_json(SUBSCRIBES_FILE) or {}
         data: dict = await read_json(DATA_FILE) or {}
     except Exception as e:
         logger.error(f"twitter_twikit: read config failed: {e}")
@@ -117,9 +117,8 @@ async def _do_timeline() -> None:
 
     data_changed = False
 
-    for sub in subscribes:
-        screen_name: str = sub.get("screen_name", "")
-        groups: list[int] = sub.get("groups", [])
+    for screen_name, conf in subscribes.items():
+        groups: list[int] = conf.get("groups", [])
         if not screen_name or not groups:
             continue
 

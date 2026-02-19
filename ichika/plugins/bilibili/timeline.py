@@ -60,7 +60,7 @@ async def _do_dynamic() -> None:
         return
 
     try:
-        subscribes: list[dict] = await read_json(SUBSCRIBES_FILE) or []
+        subscribes: dict = await read_json(SUBSCRIBES_FILE) or {}
         data: dict = await read_json(DATA_FILE) or {}
     except Exception as e:
         logger.error(f"bilibili: read config failed: {e}")
@@ -77,13 +77,11 @@ async def _do_dynamic() -> None:
 
     data_changed = False
 
-    for sub in subscribes:
-        uid: int = int(sub.get("uid", 0))
-        groups: list[int] = sub.get("groups", [])
+    for uid_str, conf in subscribes.items():
+        uid: int = int(uid_str)
+        groups: list[int] = conf.get("groups", [])
         if not uid or not groups:
             continue
-
-        uid_str = str(uid)
 
         # 获取 User 对象
         user_obj = bm.get_user(uid)

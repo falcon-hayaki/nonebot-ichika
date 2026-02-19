@@ -10,6 +10,7 @@ Bilibili 动态定时推送插件
 import asyncio
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
 from nonebot import require, logger, get_bot
 from nonebot.adapters.onebot.v11 import MessageSegment, Message
@@ -120,8 +121,21 @@ async def _do_dynamic() -> None:
         data.setdefault("last_dynamic_id", {})[uid_str] = latest_id
         data_changed = True
 
-        uname = user_info.get("name", uid_str)
+        # 过滤超过 10 分钟的旧动态
+        now_ts = datetime.now().timestamp()
+        valid_ids = []
         for did in new_ids:
+            dyn = dynamics.get(did, {})
+            ts = int(dyn.get("time", 0))
+            if now_ts - ts > 600:
+                continue
+            valid_ids.append(did)
+        
+        if not valid_ids:
+            continue
+
+        uname = user_info.get("name", uid_str)
+        for did in valid_ids:
             dyn = dynamics.get(did, {})
             text = dyn.get("text", "")
             imgs: list[str] = dyn.get("imgs", [])

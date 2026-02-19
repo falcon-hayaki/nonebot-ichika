@@ -163,13 +163,31 @@ async def _do_timeline() -> None:
         if not new_tweets:
             continue
 
-        # 更新 last_tweet_id
+        # 更新 last_tweet_id 为最新一条，无论是否推送
         latest_id = max(t[0] for t in new_tweets)
         data.setdefault("last_tweet_id", {})[screen_name] = latest_id
         data_changed = True
 
-        # 推送到各群
+        # 过滤超过 10 分钟的旧推文
+        now_ts = datetime.now().timestamp()
+        valid_tweets = []
         for tid, tweet_data in new_tweets:
+            created_at = tweet_data.get("created_at", "")
+            try:
+                # "Fri Oct 20 12:34:56 +0000 2023"
+                dt = datetime.strptime(created_at, "%a %b %d %H:%M:%S %z %Y")
+                ts = dt.timestamp()
+                if now_ts - ts > 600:  # 10分钟 = 600秒
+                    continue
+            except Exception:
+                pass
+            valid_tweets.append((tid, tweet_data))
+            
+        if not valid_tweets:
+            continue
+
+        # 推送到各群
+        for tid, tweet_data in valid_tweets:
             msg_text = _format_tweet(tweet_data, user_info)
             imgs: list[str] = tweet_data.get("imgs", [])
 

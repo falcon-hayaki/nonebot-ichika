@@ -141,11 +141,21 @@ dmypy.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 # ── 项目专属 ─────────────────────────────────────────────────────
+
+# 生产环境配置（含 API key / cookie，不入库，由手动部署）
+.env.prod
+
 # 插件生成的临时图片（词云、运势卡等），按需重新生成，不入库
-resources/*/out/
+ichika/resources/*/out/
 
 # 运行时数据文件（由 bot 写入，会频繁变动）
-resources/*/data.json
+ichika/resources/*/data.json
+
+# 聊天历史（词云记录）
+ichika/resources/wordcloud/chat_history/
+
+# 数据库文件
+*.db
 
 # 日志文件
 logs/

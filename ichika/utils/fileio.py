@@ -7,10 +7,16 @@ from typing import Union
 
 
 async def read_json(path: str):
-    async with aiofiles.open(path, 'r') as f:
-        lines = await f.read()
-    data = json.loads(lines)
-    return data
+    if not os.path.exists(path):
+        return None
+    try:
+        async with aiofiles.open(path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+        if not content.strip():
+            return None
+        return json.loads(content)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
 
 
 def _sync_write_atomic(path: str, content: str):

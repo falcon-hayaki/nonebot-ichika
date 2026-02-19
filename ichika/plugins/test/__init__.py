@@ -7,7 +7,7 @@ import base64
 import logging
 
 import httpx
-from nonebot import on_keyword, on_message, logger
+from nonebot import on_fullmatch, on_message, logger
 from nonebot.adapters.onebot.v11 import (
     Bot, GroupMessageEvent, MessageEvent, MessageSegment, Message,
 )
@@ -19,11 +19,14 @@ DEBUG_GROUP = 1014696092
 
 # ─── hello ──────────────────────────────────────────────────────
 
-hello_matcher = on_keyword({"一花"}, priority=5, block=False)
+hello_matcher = on_fullmatch("一花", priority=5, block=False)
 
 
 @hello_matcher.handle()
 async def handle_hello(bot: Bot, event: MessageEvent) -> None:
+    text = event.get_plaintext()
+    logger.info(f"Test plugin received: {text}")
+    
     # 过滤自身消息
     if str(event.user_id) == bot.self_id:
         return

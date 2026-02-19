@@ -2,12 +2,6 @@ import requests
 import logging
 from typing import Optional, Dict, Any, List
 
-# Try to import botoy, but don't fail if it's not there, to allow standalone execution
-try:
-    from botoy import jconfig
-except ImportError:
-    jconfig = None
-
 logger = logging.getLogger(__name__)
 
 
@@ -22,21 +16,14 @@ class XAPIManager:
     # X API v2 base URL
     BASE_URL = "https://api.twitter.com/2"
     
-    def __init__(self, config: Optional[Dict[str, str]] = None):
+    def __init__(self, config: Dict[str, str]):
         """
         Initializes the XAPIManager.
-        
-        :param config: A dictionary with 'bearer_token' and optional 'proxy', 'api_tier'.
-                       If not provided, it will try to load from botoy's jconfig.
+
+        :param config: dict with keys: 'bearer_token', optional 'proxy', 'api_tier'.
                        api_tier options: 'free', 'basic', 'pro' (default: 'free')
         """
-        if config is None:
-            if jconfig:
-                self.config = jconfig.get_configuration('x_api')
-            else:
-                raise ValueError("A config dictionary must be provided when not running in a botoy environment.")
-        else:
-            self.config = config
+        self.config = config
         
         # Set API tier (free, basic, pro)
         self.api_tier = self.config.get('api_tier', 'free').lower()

@@ -1,13 +1,13 @@
 import traceback
 from googleapiclient.discovery import build
 
-from botoy import jconfig
 
-class YoutubeManager():
-    def __init__(self):
-        youtube_conf = jconfig.get_configuration('youtube')
-        
-        self.youtube = build('youtube', 'v3', developerKey=youtube_conf.get('api_key'))
+class YoutubeManager:
+    def __init__(self, api_key: str):
+        """
+        :param api_key: Google Cloud Data API v3 key
+        """
+        self.youtube = build('youtube', 'v3', developerKey=api_key)
 
     def get_channel_details(self, user_id: str, id_type: str):
         try:

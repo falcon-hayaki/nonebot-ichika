@@ -27,11 +27,16 @@ _bm = None
 def _get_manager():
     global _bm
     if _bm is None:
-        cookie = cfg_get("bilibili.cookie")
-        if not cookie:
+        sessdata = cfg_get("bilibili.sessdata")
+        if not sessdata:
             return None
         try:
-            _bm = BilibiliApiManager(cookie=cookie)
+            _bm = BilibiliApiManager(config={
+                "sessdata": sessdata,
+                "bili_jct": cfg_get("bilibili.bili_jct") or "",
+                "buvid3": cfg_get("bilibili.buvid3") or "",
+                "dedeuserid": cfg_get("bilibili.dedeuserid") or "",
+            })
         except Exception as e:
             logger.error(f"BilibiliApiManager init failed: {e}")
     return _bm

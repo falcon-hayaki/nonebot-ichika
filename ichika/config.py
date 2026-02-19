@@ -1,7 +1,7 @@
 """
 公共配置加载模块
 从 NoneBot2 driver config 中读取各服务的配置项
-对应 botoy 的 jconfig.get('key')
+key 格式：点号分隔，如 'twitter.cookie' → 环境变量 TWITTER_COOKIE
 """
 from nonebot import get_driver
 

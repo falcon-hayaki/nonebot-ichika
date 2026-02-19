@@ -5,21 +5,18 @@ import asyncio
 from datetime import datetime
 
 from bilibili_api import Credential, video, user
-from botoy import jconfig
 
 
 class BilibiliApiManager:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        if config is None:
-            bilibili_conf = jconfig.get_configuration("bilibili")
-        else:
-            bilibili_conf = config
-
+    def __init__(self, config: Dict[str, Any]):
+        """
+        :param config: dict with keys: sessdata, bili_jct, buvid3, dedeuserid
+        """
         self.credential = Credential(
-            sessdata=bilibili_conf.get("sessdata"),
-            bili_jct=bilibili_conf.get("bili_jct"),
-            buvid3=bilibili_conf.get("buvid3"),
-            dedeuserid=bilibili_conf.get("dedeuserid"),
+            sessdata=config.get("sessdata"),
+            bili_jct=config.get("bili_jct"),
+            buvid3=config.get("buvid3"),
+            dedeuserid=config.get("dedeuserid"),
         )
 
     def get_user(self, uid: int) -> user.User:

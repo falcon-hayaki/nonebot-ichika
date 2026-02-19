@@ -6,7 +6,7 @@ from .bottle_messages import BottleMessagesDB
 from .quotes import Quotes
 
 # DB 文件路径：项目根目录下
-_DB_PATH = Path(__file__).parent.parent.parent / "botoy.db"
+_DB_PATH = Path(__file__).parent.parent.parent / "ichika.db"
 
 
 class DB(BottleMessagesDB, Quotes):

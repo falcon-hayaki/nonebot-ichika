@@ -2,10 +2,12 @@
 Bilibili 动态定时推送插件
 每 5 分钟检查一次订阅用户的新动态，推送到对应群组
 配置项（.env.prod）：
-  BILIBILI_COOKIE=<cookie string>
+  BILIBILI_SESSDATA=
+  BILIBILI_BILI_JCT=
+  BILIBILI_BUVID3=
+  BILIBILI_DEDEUSERID=
 """
 import asyncio
-import re
 from pathlib import Path
 from typing import Optional
 
@@ -30,11 +32,17 @@ _bm: Optional[BilibiliApiManager] = None
 def _get_manager() -> Optional[BilibiliApiManager]:
     global _bm
     if _bm is None:
-        cookie = cfg_get("bilibili.cookie")
-        if not cookie:
+        sessdata = cfg_get("bilibili.sessdata")
+        if not sessdata:
             return None
+        config = {
+            "sessdata": sessdata,
+            "bili_jct": cfg_get("bilibili.bili_jct") or "",
+            "buvid3": cfg_get("bilibili.buvid3") or "",
+            "dedeuserid": cfg_get("bilibili.dedeuserid") or "",
+        }
         try:
-            _bm = BilibiliApiManager(cookie=cookie)
+            _bm = BilibiliApiManager(config=config)
         except Exception as e:
             logger.error(f"BilibiliApiManager init failed: {e}")
     return _bm
@@ -70,61 +78,74 @@ async def _do_dynamic() -> None:
     data_changed = False
 
     for sub in subscribes:
-        uid: str = str(sub.get("uid", ""))
+        uid: int = int(sub.get("uid", 0))
         groups: list[int] = sub.get("groups", [])
         if not uid or not groups:
             continue
 
+        uid_str = str(uid)
+
+        # 获取 User 对象
+        user_obj = bm.get_user(uid)
+
+        # 获取用户信息
         try:
-            user_info_raw = await bm.get_user_info(uid)
-            user_info = bm.parse_user_info(user_info_raw)
+            user_info_raw = await user_obj.get_user_info()
+            relation_info_raw = await user_obj.get_relation_info()
+            user_info = BilibiliApiManager.parse_user_info(user_info_raw, relation_info_raw)
         except Exception as e:
             logger.warning(f"bilibili: get_user_info {uid} failed: {e}")
             continue
 
-        if not user_info:
-            continue
-
-        data.setdefault("users", {})[uid] = user_info
+        data.setdefault("users", {})[uid_str] = user_info
         data_changed = True
 
+        # 获取动态列表
         try:
-            dynamic_raw = await bm.get_user_dynamic(uid)
-            dynamics = bm.parse_dynamic(dynamic_raw)
+            dynamic_raw = await user_obj.get_dynamics_new()
+            dynamic_id_list, dynamics = BilibiliApiManager.parse_timeline(dynamic_raw)
         except Exception as e:
             logger.warning(f"bilibili: get_dynamic {uid} failed: {e}")
             continue
 
-        if not dynamics:
+        if not dynamic_id_list:
             continue
 
-        last_id = data.get("last_dynamic_id", {}).get(uid, "")
-        new_items = [(did, d) for did, d in sorted(dynamics.items()) if not last_id or did > last_id]
+        # 找出新动态
+        last_id = data.get("last_dynamic_id", {}).get(uid_str, "")
+        new_ids = [did for did in dynamic_id_list if not last_id or did > last_id]
 
-        if not new_items:
+        if not new_ids:
             continue
 
-        latest_id = max(t[0] for t in new_items)
-        data.setdefault("last_dynamic_id", {})[uid] = latest_id
+        latest_id = max(new_ids)
+        data.setdefault("last_dynamic_id", {})[uid_str] = latest_id
         data_changed = True
 
-        uname = user_info.get("name", uid)
-        for did, dyn in new_items:
-            dyn_type = dyn.get("type", "")
-            content = dyn.get("content", "")
-            img_url = dyn.get("img", "")
-            summary = f"📢 {uname} 发布了新动态\n{content}"
+        uname = user_info.get("name", uid_str)
+        for did in new_ids:
+            dyn = dynamics.get(did, {})
+            text = dyn.get("text", "")
+            imgs: list[str] = dyn.get("imgs", [])
+            links: list[str] = dyn.get("links", [])
+            unknown = dyn.get("unknown_type", "")
+
+            if unknown:
+                summary = f"📢 {uname} 发布了新动态（类型：{unknown}）"
+            else:
+                summary = f"📢 {uname} 发布了新动态\n{text}"
+                if links:
+                    summary += "\n" + "\n".join(l for l in links if l)
 
             try:
                 for group_id in groups:
-                    if img_url:
-                        msg = Message(MessageSegment.text(summary) + MessageSegment.image(img_url))
-                    else:
-                        msg = Message(summary)
+                    msg = Message(MessageSegment.text(summary))
+                    for img_url in imgs[:4]:
+                        msg += MessageSegment.image(img_url)
                     await bot.send_group_msg(group_id=group_id, message=msg)
             except Exception as e:
-                logger.warning(f"bilibili: send failed: {e}")
-        
+                logger.warning(f"bilibili: send failed group={group_id}: {e}")
+
         await asyncio.sleep(2)
 
     if data_changed:

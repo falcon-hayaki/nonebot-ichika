@@ -139,3 +139,16 @@ dmypy.json
 .pytype/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# ── 项目专属 ─────────────────────────────────────────────────────
+# 插件生成的临时图片（词云、运势卡等），按需重新生成，不入库
+resources/*/out/
+
+# 运行时数据文件（由 bot 写入，会频繁变动）
+resources/*/data.json
+
+# 日志文件
+logs/
+
+# NoneBot2 会话/缓存
+.cache/

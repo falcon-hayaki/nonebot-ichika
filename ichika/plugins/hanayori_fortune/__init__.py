@@ -13,8 +13,10 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot, MessageSegment
 
 from .draw import Draw
 
-# 资源路径：相对于本文件所在目录的 resources 目录
-RESOURCE_PATH = Path(__file__).parent.parent / "hanayori_fortune_resources"
+# 资源路径：项目根目录下统一的 resources 文件夹
+# __file__ = ichika/plugins/hanayori_fortune/__init__.py
+# .parent * 3 = 项目根
+RESOURCE_PATH = Path(__file__).parent.parent.parent.parent / "resources" / "hanayori_fortune"
 
 fortune_matcher = on_keyword({"抽签", "抽签签"}, priority=10, block=True)
 

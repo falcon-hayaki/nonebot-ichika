@@ -72,16 +72,16 @@ def _format_tweet(tweet_data: dict, user_info: dict) -> str:
         rt = tweet_data.get("retweet_data", {})
         rt_user = rt.get("user_info", {})
         rt_data = rt.get("data", {})
-        header = f"🔁 {name}(@{screen_name}) 转推了 {rt_user.get('name', '')}(@{rt_user.get('screen_name', '')})"
+        header = f"{name}(@{screen_name}) 转推了 {rt_user.get('name', '')}(@{rt_user.get('screen_name', '')})"
         body = rt_data.get("text", "")
     elif tweet_type == "quote":
         q = tweet_data.get("quote_data", {})
         q_user = q.get("user_info", {})
         q_data = q.get("data", {})
-        header = f"💬 {name}(@{screen_name}) 引用了 {q_user.get('name', '')}(@{q_user.get('screen_name', '')})"
+        header = f"{name}(@{screen_name}) 引用了 {q_user.get('name', '')}(@{q_user.get('screen_name', '')})"
         body = f"{text}\n\n【原推】{q_data.get('text', '')}"
     else:
-        header = f"🐦 {name}(@{screen_name}) 发推了"
+        header = f"{name}(@{screen_name}) 发推了"
         body = text
 
     tweet_id = tweet_data.get("id", "")

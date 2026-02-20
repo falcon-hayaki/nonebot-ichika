@@ -8,7 +8,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 
-from nonebot import on_keyword, logger
+from nonebot import on_fullmatch, logger
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot, MessageSegment
 
 from .draw import Draw
@@ -18,7 +18,7 @@ from .draw import Draw
 # .parent * 3 = 项目根
 RESOURCE_PATH = Path(__file__).parent.parent.parent / "resources" / "hanayori_fortune"
 
-fortune_matcher = on_keyword({"抽签", "抽签签"}, priority=10, block=True)
+fortune_matcher = on_fullmatch({"抽签", "抽签签"}, priority=10, block=True)
 
 
 @fortune_matcher.handle()

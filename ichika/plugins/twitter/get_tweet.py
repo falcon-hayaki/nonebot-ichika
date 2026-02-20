@@ -70,7 +70,7 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         rt_user = rt.get("user_info", {})
         rt_data = rt.get("data", {})
         summary = (
-            f"🔁 {name}(@{screen_name}) 转推了 "
+            f"{name}(@{screen_name}) 转推了 "
             f"{rt_user.get('name')}(@{rt_user.get('screen_name')})\n"
             f"{rt_data.get('text', '')}"
         )
@@ -80,12 +80,12 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         q_user = q.get("user_info", {})
         q_data = q.get("data", {})
         summary = (
-            f"💬 {name}(@{screen_name}) 引用了 "
+            f"{name}(@{screen_name}) 引用了 "
             f"{q_user.get('name')}(@{q_user.get('screen_name')})\n"
             f"{tweet_text}\n\n【原推】{q_data.get('text', '')}"
         )
     else:
-        summary = f"🐦 {name}(@{screen_name})\n{tweet_text}"
+        summary = f"{name}(@{screen_name})\n{tweet_text}"
 
     msg = Message(MessageSegment.text(summary))
     for img_url in imgs[:4]:

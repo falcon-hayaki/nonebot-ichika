@@ -9,15 +9,15 @@ import logging
 from datetime import datetime
 
 import httpx
-from nonebot import on_keyword, logger
+from nonebot import on_fullmatch, logger
 from nonebot.adapters.onebot.v11 import (
     Bot, GroupMessageEvent, MessageSegment
 )
 
 from ichika.db.db import db
 
-throw_matcher = on_keyword({"扔漂流瓶"}, priority=10, block=True)
-pick_matcher = on_keyword({"捡漂流瓶"}, priority=10, block=True)
+throw_matcher = on_fullmatch("扔漂流瓶", priority=10, block=True)
+pick_matcher = on_fullmatch("捡漂流瓶", priority=10, block=True)
 
 
 @throw_matcher.handle()

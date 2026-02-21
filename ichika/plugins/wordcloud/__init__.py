@@ -7,7 +7,6 @@
 import asyncio
 import base64
 import json
-import logging
 import os
 import random
 import re
@@ -37,8 +36,6 @@ MASK_PATH = RESOURCE_PATH / "masks" / "litchi_newyear.png"
 
 CHAT_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 WORDCLOUD_DIR.mkdir(parents=True, exist_ok=True)
-
-logger = logging.getLogger(__name__)
 
 
 def _load_group_enable() -> list[int]:
@@ -92,24 +89,28 @@ def _remove_abstract_content(text: str) -> str:
 
 # ─── 聊天记录监听 ────────────────────────────────────────────
 
-log_chat_matcher = on_message(priority=99, block=False)
+log_chat_matcher = on_message(priority=1, block=False)
 
 
 @log_chat_matcher.handle()
 async def handle_log_chat(bot: Bot, event: GroupMessageEvent) -> None:
-    group_enable = _load_group_enable()
-    if event.group_id not in group_enable:
-        return
-    if str(event.user_id) == bot.self_id:
-        return
+    try:
+        group_enable = _load_group_enable()
+        if event.group_id not in group_enable:
+            return
+        if str(event.user_id) == bot.self_id:
+            return
 
-    text = event.get_plaintext()
-    cleaned = _remove_abstract_content(text)
-    if not cleaned:
-        return
+        text = event.get_plaintext()
+        cleaned = _remove_abstract_content(text)
+        if not cleaned:
+            return
 
-    hist_file = CHAT_HISTORY_DIR / f"{event.group_id}.txt"
-    await addline(str(hist_file), cleaned + "\n")
+        hist_file = CHAT_HISTORY_DIR / f"{event.group_id}.txt"
+        logger.debug(f"wordcloud: recording msg group={event.group_id} text={cleaned!r}")
+        await addline(str(hist_file), cleaned + "\n")
+    except Exception:
+        logger.exception(f"wordcloud: handle_log_chat error group={event.group_id}")
 
 
 # ─── 定时词云生成 ─────────────────────────────────────────────

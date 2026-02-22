@@ -9,20 +9,20 @@ import logging
 from datetime import datetime
 
 import httpx
-from nonebot import on_fullmatch, logger
+from nonebot import on_fullmatch, on_command, logger
 from nonebot.adapters.onebot.v11 import (
     Bot, GroupMessageEvent, MessageSegment
 )
 
 from ichika.db.db import db
 
-throw_matcher = on_fullmatch("扔漂流瓶", priority=10, block=True)
+throw_matcher = on_command("扔漂流瓶", priority=10, block=True)
 pick_matcher = on_fullmatch("捡漂流瓶", priority=10, block=True)
 
 
 @throw_matcher.handle()
 async def handle_throw(bot: Bot, event: GroupMessageEvent) -> None:
-    text = event.get_plaintext().replace("扔漂流瓶", "").strip()
+    text = event.get_message().extract_plain_text().strip()
     imgs_b64 = []
 
     # 收集图片

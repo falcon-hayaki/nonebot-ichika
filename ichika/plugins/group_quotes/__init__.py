@@ -74,7 +74,7 @@ async def handle_save(bot: Bot, event: GroupMessageEvent, args: Message = Comman
     group_id = event.group_id
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.insert_data("quotes", user_key=key, group_id=group_id, img=img_b64, time=now_str)
-    await save_matcher.send(f"已保存语录")
+    await save_matcher.send(f"保存成功喵")
 
 
 @quote_matcher.handle()
@@ -93,7 +93,4 @@ async def handle_quote(event: GroupMessageEvent, args: Message = CommandArg()) -
         return
 
     img_b64 = row["img"]
-    await quote_matcher.send(
-        MessageSegment.text(f"[{key}] 的语录：\n")
-        + MessageSegment.image(f"base64://{img_b64}")
-    )
+    await quote_matcher.send(MessageSegment.image(f"base64://{img_b64}"))

@@ -4,5 +4,5 @@ Bilibili 插件包
 from ichika.config import get as cfg_get
 
 if cfg_get("bilibili.sessdata"):
-    from . import timeline, get_video
+    from . import timeline, get_video, live_notify
 

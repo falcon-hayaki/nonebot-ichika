@@ -65,16 +65,19 @@ async def handle_pick(event: GroupMessageEvent) -> None:
         return
 
     msg_parts = []
-    user_name = row.get("user_name", "某人")
     time_str = row.get("time", "")
     text = row.get("text", "")
 
-    header = f"🍾 捡到来自【{user_name}】的漂流瓶"
+    header = "🍾 捡到一个漂流瓶"
     if time_str:
         header += f"（{time_str}）"
     msg_parts.append(MessageSegment.text(header + "\n"))
 
     if text:
+        try:
+            text = text.encode("ascii", "backslashreplace").decode("unicode_escape")
+        except Exception:
+            pass
         msg_parts.append(MessageSegment.text(text))
 
     imgs_raw = row.get("imgs", "[]")

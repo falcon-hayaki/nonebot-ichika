@@ -11,6 +11,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Messa
 
 from ichika.config import get as cfg_get
 from ichika.utils.twikit_manager import TwikitManager
+from ichika.utils.llm_translator import translate_tweet_text
 
 _URL_PATTERN = re.compile(
     r"https?://(?:x\.com|twitter\.com)/\w+/status/(\d+)"
@@ -69,23 +70,26 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         rt = tweet_data.get("retweet_data", {})
         rt_user = rt.get("user_info", {})
         rt_data = rt.get("data", {})
-        summary = (
-            f"{name}(@{screen_name}) 转推了 "
-            f"{rt_user.get('name')}(@{rt_user.get('screen_name')})\n"
-            f"{rt_data.get('text', '')}"
-        )
+        header = f"{name}(@{screen_name}) 转推了 {rt_user.get('name')}(@{rt_user.get('screen_name')})"
+        body = rt_data.get("text", "")
         imgs = rt_data.get("imgs", imgs)
     elif tweet_type == "quote":
         q = tweet_data.get("quote_data", {})
         q_user = q.get("user_info", {})
         q_data = q.get("data", {})
-        summary = (
-            f"{name}(@{screen_name}) 引用了 "
-            f"{q_user.get('name')}(@{q_user.get('screen_name')})\n"
-            f"{tweet_text}\n\n【原推】{q_data.get('text', '')}"
-        )
+        header = f"{name}(@{screen_name}) 引用了 {q_user.get('name')}(@{q_user.get('screen_name')})"
+        body = f"{tweet_text}\n\n【原推】{q_data.get('text', '')}"
     else:
-        summary = f"{name}(@{screen_name})\n{tweet_text}"
+        header = f"{name}(@{screen_name})"
+        body = tweet_text
+
+    # 获取翻译内容
+    body_translated = await translate_tweet_text(body)
+    
+    if body_translated and body_translated != body and not body_translated.startswith("抱歉"):
+        body = f"{body}\n\n【翻译】\n{body_translated}"
+        
+    summary = f"{header}\n{body}"
 
     msg = Message(MessageSegment.text(summary))
     for img_url in imgs[:4]:

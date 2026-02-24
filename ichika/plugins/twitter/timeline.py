@@ -9,8 +9,8 @@ import asyncio
 import json
 import random
 import re
-import httpx
 from pathlib import Path
+from ichika.utils.llm_translator import translate_tweet_text
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -61,49 +61,6 @@ async def _rate_limit(key: str) -> None:
     if wait > 0:
         await asyncio.sleep(wait)
     _last_call[key] = datetime.now().timestamp()
-
-
-async def _translate_text(text: str) -> str:
-    if not text.strip():
-        return ""
-    api_key = cfg_get("twitter.llm_api_key")
-    if not api_key:
-        return ""
-    
-    api_url = cfg_get("twitter.llm_api_url") or "https://api.siliconflow.cn/v1/chat/completions"
-    model = cfg_get("twitter.llm_model") or "Qwen/Qwen2.5-7B-Instruct"
-
-    prompt = (
-        "你是一个精通日语和中文二次元网络用语的同传翻译，请将以下推文翻译成自然流畅的中文，"
-        "保留原本的语气和颜文字，不要带有翻译腔。如果本身就是纯中文或者无意义的英文字母则直接返回原文本。\n"
-        "请直接输出翻译结果，不要带有任何多余的解释说明。"
-    )
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text}
-        ],
-        "temperature": 0.3,
-        "max_tokens": 512
-    }
-    
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(api_url, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        logger.warning(f"twitter_twikit: LLM translation failed: {e}")
-        return ""
-
-
 async def _format_tweet(tweet_data: dict, user_info: dict) -> str:
     name = user_info.get("name", "")
     screen_name = user_info.get("screen_name", "")
@@ -130,7 +87,7 @@ async def _format_tweet(tweet_data: dict, user_info: dict) -> str:
     url = f"\nhttps://x.com/{screen_name}/status/{tweet_id}" if tweet_id else ""
     
     # 获取翻译内容
-    body_translated = await _translate_text(body)
+    body_translated = await translate_tweet_text(body)
     
     # 只有在成功翻译、文本发生变化、且未产生“抱歉”或空字符串的异常回复时，才拼接翻译
     if body_translated and body_translated != body and not body_translated.startswith("抱歉"):

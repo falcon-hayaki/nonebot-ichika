@@ -5,7 +5,7 @@
 import base64
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from nonebot import on_fullmatch, logger
@@ -33,7 +33,7 @@ async def handle_fortune(bot: Bot, event: GroupMessageEvent) -> None:
         titles_data = json.load(f)
 
     # 用日期+用户QQ作为随机种子，保证同一天结果相同
-    now = datetime.now()
+    now = datetime.now(timezone(timedelta(hours=8)))
     user_id = event.user_id
     seed = int("".join(str(i) for i in [now.year, now.month, now.day, user_id]))
 

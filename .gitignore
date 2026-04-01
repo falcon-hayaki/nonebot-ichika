@@ -162,3 +162,6 @@ logs/
 
 # NoneBot2 会话/缓存
 .cache/
+
+# VSCode
+.vscode/

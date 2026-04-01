@@ -197,14 +197,24 @@ async def _do_timeline() -> None:
         # 推送到各群
         for tid, tweet_data in valid_tweets:
             msg_text = await _format_tweet(tweet_data, user_info)
+            
+            tweet_type = tweet_data.get("tweet_type", "default")
             imgs: list[str] = tweet_data.get("imgs", [])
+            videos: list[str] = tweet_data.get("videos", [])
+
+            if tweet_type == "retweet":
+                rt_data = tweet_data.get("retweet_data", {}).get("data", {})
+                imgs = rt_data.get("imgs", imgs)
+                videos = rt_data.get("videos", videos)
 
             try:
                 for group_id in groups:
-                    if imgs:
+                    if imgs or videos:
                         msg = Message(MessageSegment.text(msg_text))
                         for img_url in imgs[:4]:  # 最多发4张
                             msg += MessageSegment.image(img_url)
+                        for video_url in videos[:4]:
+                            msg += MessageSegment.video(video_url)
                         await bot.send_group_msg(group_id=group_id, message=msg)
                     else:
                         await bot.send_group_msg(group_id=group_id, message=msg_text)

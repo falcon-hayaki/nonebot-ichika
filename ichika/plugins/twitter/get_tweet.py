@@ -65,6 +65,7 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
     tweet_type = tweet_data.get("tweet_type", "default")
     tweet_text = tweet_data.get("text", "")
     imgs: list[str] = tweet_data.get("imgs", [])
+    videos: list[str] = tweet_data.get("videos", [])
 
     if tweet_type == "retweet":
         rt = tweet_data.get("retweet_data", {})
@@ -73,6 +74,7 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         header = f"{name}(@{screen_name}) 转推了 {rt_user.get('name')}(@{rt_user.get('screen_name')})"
         body = rt_data.get("text", "")
         imgs = rt_data.get("imgs", imgs)
+        videos = rt_data.get("videos", videos)
     elif tweet_type == "quote":
         q = tweet_data.get("quote_data", {})
         q_user = q.get("user_info", {})
@@ -94,6 +96,8 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
     msg = Message(MessageSegment.text(summary))
     for img_url in imgs[:4]:
         msg += MessageSegment.image(img_url)
+    for video_url in videos[:4]:
+        msg += MessageSegment.video(video_url)
 
     try:
         await get_tweet_matcher.send(msg)

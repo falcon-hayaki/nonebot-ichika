@@ -1,7 +1,6 @@
-from nonebot import on_command, require
+from nonebot import on_regex, require
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment, Message
 from nonebot.typing import T_State
-from nonebot.params import CommandArg
 from nonebot.log import logger
 from nonebot.exception import FinishedException
 import httpx
@@ -9,8 +8,8 @@ import base64
 
 from ichika.config import get as cfg_get
 
-# 注册命令
-receipt_cmd = on_command("一花小票", priority=5, block=True)
+# 注册命令，使用正则匹配开头以去除非得加 "/" 的限制
+receipt_cmd = on_regex(r"^\s*一花小票", priority=5, block=True)
 
 PROMPT_TEXT = (
     "这是一张我在海外旅行时的购物小票。请识别出小票上的所有内容，将商品名称翻译为中文，并以此格式输出：\n"
@@ -21,7 +20,7 @@ PROMPT_TEXT = (
 )
 
 @receipt_cmd.handle()
-async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = CommandArg()):
+async def _(bot: Bot, event: MessageEvent, state: T_State):
     img_urls = []
     
     if event.reply:
@@ -34,7 +33,7 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
             img_urls.append(seg.data.get("url"))
             
     if not img_urls:
-        await receipt_cmd.finish("请发送带有小票图片的指令（如发文本「/一花小票」附加上图片，或者对小票图片回复「/一花小票」）")
+        await receipt_cmd.finish("请发送带有小票图片的指令（如发文本「一花小票」附加上图片，或者对小票图片回复「一花小票」）")
 
     target_img_url = img_urls[0]
     

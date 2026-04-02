@@ -3,6 +3,7 @@ from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment, Messa
 from nonebot.typing import T_State
 from nonebot.params import CommandArg
 from nonebot.log import logger
+from nonebot.exception import FinishedException
 import httpx
 import base64
 
@@ -97,7 +98,10 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
             except (KeyError, IndexError):
                 logger.error(f"receipt_assistant: Gemini API returned unexpected format: {data}")
                 await receipt_cmd.finish(f"小票识别解析失败，模型返回的格式异常: {data}")
-                
+
+    except FinishedException:
+        # Nonebot 用于中断执行流的特殊异常，不要被误杀拦截
+        raise
     except httpx.HTTPStatusError as e:
         logger.error(f"receipt_assistant: HTTP Error: {e.response.text}")
         await receipt_cmd.finish("识别失败，API 或图片下载服务返回错误状态码。")

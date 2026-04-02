@@ -103,8 +103,15 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
         # Nonebot 用于中断执行流的特殊异常，不要被误杀拦截
         raise
     except httpx.HTTPStatusError as e:
-        logger.error(f"receipt_assistant: HTTP Error: {e.response.text}")
-        await receipt_cmd.finish("识别失败，API 或图片下载服务返回错误状态码。")
+        err_msg = e.response.text
+        try:
+            err_json = e.response.json()
+            if "error" in err_json and "message" in err_json["error"]:
+                err_msg = err_json["error"]["message"]
+        except Exception:
+            pass
+        logger.error(f"receipt_assistant: HTTP Error {e.response.status_code}: {e.response.text}")
+        await receipt_cmd.finish(f"小票识别翻译失败 (HTTP {e.response.status_code})：{err_msg}")
     except Exception as e:
         logger.error(f"receipt_assistant: Process failed: {e}")
         await receipt_cmd.finish(f"小票识别翻译失败：{str(e)}")

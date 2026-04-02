@@ -1,4 +1,4 @@
-from nonebot import on_regex, require
+from nonebot import on_keyword, require
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment, Message
 from nonebot.typing import T_State
 from nonebot.log import logger
@@ -8,8 +8,8 @@ import base64
 
 from ichika.config import get as cfg_get
 
-# 注册命令，使用正则匹配开头以去除非得加 "/" 的限制
-receipt_cmd = on_regex(r"^\s*一花小票", priority=5, block=True)
+# 注册命令，使用关键词匹配以防 QQ 客户端将图片排在前面导致开头的正则匹配失败
+receipt_cmd = on_keyword({"一花小票"}, priority=5, block=True)
 
 PROMPT_TEXT = (
     "这是一张我在海外旅行时的购物小票。请识别出小票上的所有内容，将商品名称翻译为中文，并以此格式输出：\n"

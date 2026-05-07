@@ -29,6 +29,47 @@ async def _patched_get_indices(self, home_page_response, session, headers):
 _tx_mod.ClientTransaction.get_indices = _patched_get_indices
 # END MONKEY PATCH
 
+# MONKEY PATCH: Fix KeyErrors in User.__init__
+import twikit.user
+_original_user_init = twikit.user.User.__init__
+
+def _patched_user_init(self, client, data: dict) -> None:
+    try:
+        if 'is_blue_verified' not in data:
+            data['is_blue_verified'] = False
+        if 'legacy' not in data:
+            data['legacy'] = {}
+        
+        legacy = data['legacy']
+        defaults = {
+            'created_at': '', 'name': '', 'screen_name': '',
+            'profile_image_url_https': '', 'location': '', 'description': '',
+            'pinned_tweet_ids_str': [], 'verified': False, 'possibly_sensitive': False,
+            'can_dm': False, 'can_media_tag': False, 'want_retweets': False,
+            'default_profile': False, 'default_profile_image': False,
+            'has_custom_timelines': False, 'followers_count': 0,
+            'fast_followers_count': 0, 'normal_followers_count': 0,
+            'friends_count': 0, 'favourites_count': 0, 'listed_count': 0,
+            'media_count': 0, 'statuses_count': 0, 'is_translator': False,
+            'translator_type': '', 'withheld_in_countries': []
+        }
+        for k, v in defaults.items():
+            if k not in legacy:
+                legacy[k] = v
+                
+        if 'entities' not in legacy:
+            legacy['entities'] = {}
+        if 'description' not in legacy['entities']:
+            legacy['entities']['description'] = {}
+        if 'urls' not in legacy['entities']['description']:
+            legacy['entities']['description']['urls'] = []
+    except Exception:
+        pass
+    _original_user_init(self, client, data)
+
+twikit.user.User.__init__ = _patched_user_init
+# END MONKEY PATCH
+
 from twikit import Client
 
 logger = logging.getLogger(__name__)

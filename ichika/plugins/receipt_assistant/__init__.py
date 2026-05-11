@@ -59,41 +59,46 @@ async def _(bot: Bot, event: MessageEvent, state):
                 
             img_base64 = base64.b64encode(img_bytes).decode("utf-8")
         
-        # 2. 调用 Gemini API
-        base_url = cfg_get("gemini_api_base") or "https://generativelanguage.googleapis.com"
-        model_name = cfg_get("gemini_receipt_model") or "gemini-2.5-flash"
-        gemini_url = f"{base_url}/v1beta/models/{model_name}:generateContent?key={api_key}"
+        # 2. 调用 IkunCode API (OpenAI 兼容格式)
+        base_url = cfg_get("gemini_api_base") or "https://api.ikuncode.cc"
+        model_name = cfg_get("gemini_receipt_model") or "gemini-2.5-pro"
+        api_url = f"{base_url}/v1/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         
         payload = {
-            "contents": [
+            "model": model_name,
+            "messages": [
                 {
-                    "parts": [
-                        {"text": PROMPT_TEXT},
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": PROMPT_TEXT},
                         {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": img_base64
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{img_base64}"
                             }
                         }
                     ]
                 }
             ],
-            "generationConfig": {
-                "temperature": 0.1,
-                "maxOutputTokens": 4096,
-            }
+            "temperature": 0.1,
+            "max_tokens": 4096,
         }
 
         gemini_proxy = cfg_get("gemini_proxy") or cfg_get("proxy")
         if not gemini_proxy:
             gemini_proxy = None
         async with httpx.AsyncClient(timeout=60.0, proxy=gemini_proxy) as client:
-            resp = await client.post(gemini_url, json=payload)
+            resp = await client.post(api_url, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
             
             try:
-                result_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                result_text = data["choices"][0]["message"]["content"].strip()
                 if result_text:
                     await receipt_cmd.finish(result_text)
                 else:

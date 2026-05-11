@@ -1,6 +1,5 @@
 from nonebot import on_keyword, require
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment, Message
-from nonebot.typing import T_State
 from nonebot.log import logger
 from nonebot.exception import FinishedException
 import httpx
@@ -12,15 +11,15 @@ from ichika.config import get as cfg_get
 receipt_cmd = on_keyword({"一花小票"}, priority=5, block=True)
 
 PROMPT_TEXT = (
-    "这是一张我在海外旅行时的购物小票。请识别出小票上的所有内容，将商品名称翻译为中文，并以此格式输出：\n"
+    "这是一张购物小票。请仔细、逐行识别出小票上的【所有】商品内容，绝不能遗漏任何一项，将商品名称翻译为中文，并以此格式输出：\n"
     "商品名(原文) - 商品名(中文翻译) - 价格\n"
     "如果有额外的折扣或税费也请列出。\n"
     "最后请统计出总金额。\n"
-    "直接输出整理好的账单结果，不需要任何额外的闲聊或解释。"
+    "请确保内容完整，不要因为小票太长而截断或省略。直接输出整理好的账单结果，不需要任何额外的闲聊或解释。"
 )
 
 @receipt_cmd.handle()
-async def _(bot: Bot, event: MessageEvent, state: T_State):
+async def _(bot: Bot, event: MessageEvent, state):
     img_urls = []
     
     if event.reply:
@@ -61,7 +60,9 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
             img_base64 = base64.b64encode(img_bytes).decode("utf-8")
         
         # 2. 调用 Gemini API
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+        base_url = cfg_get("gemini_api_base", "https://generativelanguage.googleapis.com")
+        model_name = cfg_get("gemini_receipt_model", "gemini-1.5-pro")
+        gemini_url = f"{base_url}/v1beta/models/{model_name}:generateContent?key={api_key}"
         
         payload = {
             "contents": [
@@ -79,11 +80,14 @@ async def _(bot: Bot, event: MessageEvent, state: T_State):
             ],
             "generationConfig": {
                 "temperature": 0.1,
-                "maxOutputTokens": 1500,
+                "maxOutputTokens": 4096,
             }
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        gemini_proxy = cfg_get("gemini_proxy") or cfg_get("proxy")
+        if not gemini_proxy:
+            gemini_proxy = None
+        async with httpx.AsyncClient(timeout=60.0, proxy=gemini_proxy) as client:
             resp = await client.post(gemini_url, json=payload)
             resp.raise_for_status()
             data = resp.json()

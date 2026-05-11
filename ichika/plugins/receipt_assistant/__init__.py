@@ -86,26 +86,49 @@ async def _(bot: Bot, event: MessageEvent, state):
                 }
             ],
             "temperature": 0.1,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
         }
 
         gemini_proxy = cfg_get("gemini_proxy") or cfg_get("proxy")
         if not gemini_proxy:
             gemini_proxy = None
-        async with httpx.AsyncClient(timeout=60.0, proxy=gemini_proxy) as client:
-            resp = await client.post(api_url, headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
             
-            try:
-                result_text = data["choices"][0]["message"]["content"].strip()
-                if result_text:
-                    await receipt_cmd.finish(result_text)
-                else:
-                    await receipt_cmd.finish("未能从小票中提取并翻译出有效内容。")
-            except (KeyError, IndexError):
-                logger.error(f"receipt_assistant: Gemini API returned unexpected format: {data}")
-                await receipt_cmd.finish(f"小票识别解析失败，模型返回的格式异常: {data}")
+        async with httpx.AsyncClient(timeout=120.0, proxy=gemini_proxy) as client:
+            result_text = ""
+            for _ in range(3):  # 最多尝试自动续写 3 次
+                resp = await client.post(api_url, headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                
+                try:
+                    choice = data["choices"][0]
+                    content = choice["message"]["content"]
+                    result_text += content
+                    
+                    if choice.get("finish_reason") == "length":
+                        # 触发了最大 token 限制，被截断，进行续写
+                        payload["messages"].append({
+                            "role": "assistant",
+                            "content": content
+                        })
+                        payload["messages"].append({
+                            "role": "user",
+                            "content": "刚才的输出被截断了，请无缝接着上面最后一个字符继续输出后面的内容，不要重复已经输出的内容，也不要说废话。"
+                        })
+                        continue
+                    else:
+                        break
+                except (KeyError, IndexError):
+                    logger.error(f"receipt_assistant: API returned unexpected format: {data}")
+                    if not result_text:
+                        await receipt_cmd.finish(f"小票识别解析失败，模型返回的格式异常: {data}")
+                    break
+            
+            result_text = result_text.strip()
+            if result_text:
+                await receipt_cmd.finish(result_text)
+            else:
+                await receipt_cmd.finish("未能从小票中提取并翻译出有效内容。")
 
     except FinishedException:
         # Nonebot 用于中断执行流的特殊异常，不要被误杀拦截

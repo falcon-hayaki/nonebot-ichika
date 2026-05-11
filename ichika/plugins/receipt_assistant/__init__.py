@@ -61,7 +61,7 @@ async def _(bot: Bot, event: MessageEvent, state):
         
         # 2. 调用 Gemini API
         base_url = cfg_get("gemini_api_base") or "https://generativelanguage.googleapis.com"
-        model_name = cfg_get("gemini_receipt_model") or "gemini-1.5-pro"
+        model_name = cfg_get("gemini_receipt_model") or "gemini-2.5-pro"
         gemini_url = f"{base_url}/v1beta/models/{model_name}:generateContent?key={api_key}"
         
         payload = {

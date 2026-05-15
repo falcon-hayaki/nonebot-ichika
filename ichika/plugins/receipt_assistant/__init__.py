@@ -61,7 +61,7 @@ async def _(bot: Bot, event: MessageEvent, state):
         
         # 2. 调用 IkunCode API (OpenAI 兼容格式)
         base_url = cfg_get("gemini_api_base") or "https://api.ikuncode.cc"
-        model_name = cfg_get("gemini_receipt_model") or "gemini-2.5-pro"
+        model_name = cfg_get("gemini_receipt_model") or "gemini-3-flash"
         api_url = f"{base_url}/v1/chat/completions"
         
         headers = {

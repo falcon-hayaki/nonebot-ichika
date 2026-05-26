@@ -94,22 +94,25 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         
     summary = f"{header}\n{body}"
 
-    msg = Message(MessageSegment.text(summary))
-    for img_url in imgs[:4]:
-        msg += MessageSegment.image(img_url)
-
-    # 视频：先下载到本地再发送
+    # 视频：先下载到本地
+    local_videos = []
     proxy = cfg_get("twitter.proxy")
     for video_url in videos[:4]:
         logger.info(f"get_tweet 提取到视频链接: {video_url[:120]}")
         local_path = await async_download_video(video_url, proxy=proxy)
         if local_path:
-            logger.info(f"get_tweet 视频下载成功，发送: {local_path}")
-            msg += MessageSegment.video(local_path)
+            logger.info(f"get_tweet 视频下载成功，加入待发送列表: {local_path}")
+            local_videos.append(local_path)
         else:
             logger.warning(f"get_tweet 视频下载失败，跳过: {video_url[:120]}")
 
+    msg = Message(MessageSegment.text(summary))
+    for img_url in imgs[:4]:
+        msg += MessageSegment.image(img_url)
+
     try:
         await get_tweet_matcher.send(msg)
+        for local_path in local_videos:
+            await get_tweet_matcher.send(MessageSegment.video(local_path))
     except Exception as e:
         logger.warning(f"get_tweet send failed: {e}")

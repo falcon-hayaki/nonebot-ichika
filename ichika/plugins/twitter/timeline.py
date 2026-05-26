@@ -208,22 +208,28 @@ async def _do_timeline() -> None:
                 imgs = rt_data.get("imgs", imgs)
                 videos = rt_data.get("videos", videos)
 
+            # 下载该推文的视频（最多4个）
+            local_videos = []
+            if videos:
+                proxy = cfg_get("twitter.proxy")
+                for video_url in videos[:4]:
+                    logger.info(f"timeline 提取到视频链接: {video_url[:120]}")
+                    local_path = await async_download_video(video_url, proxy=proxy)
+                    if local_path:
+                        logger.info(f"timeline 视频下载成功，加入待发送列表: {local_path}")
+                        local_videos.append(local_path)
+                    else:
+                        logger.warning(f"timeline 视频下载失败，跳过: {video_url[:120]}")
+
             try:
                 for group_id in groups:
-                    if imgs or videos:
+                    if imgs or local_videos:
                         msg = Message(MessageSegment.text(msg_text))
                         for img_url in imgs[:4]:  # 最多发4张
                             msg += MessageSegment.image(img_url)
-                        proxy = cfg_get("twitter.proxy")
-                        for video_url in videos[:4]:
-                            logger.info(f"timeline 提取到视频链接: {video_url[:120]}")
-                            local_path = await async_download_video(video_url, proxy=proxy)
-                            if local_path:
-                                logger.info(f"timeline 视频下载成功: {local_path}")
-                                msg += MessageSegment.video(local_path)
-                            else:
-                                logger.warning(f"timeline 视频下载失败，跳过: {video_url[:120]}")
                         await bot.send_group_msg(group_id=group_id, message=msg)
+                        for local_path in local_videos:
+                            await bot.send_group_msg(group_id=group_id, message=Message(MessageSegment.video(local_path)))
                     else:
                         await bot.send_group_msg(group_id=group_id, message=msg_text)
             except Exception as e:

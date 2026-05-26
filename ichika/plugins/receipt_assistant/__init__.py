@@ -113,6 +113,7 @@ async def _(bot: Bot, event: MessageEvent, state):
                         })
                         payload["messages"].append({
                             "role": "user",
+                            # pyrefly: ignore [bad-typed-dict-key]
                             "content": "刚才的输出被截断了，请无缝接着上面最后一个字符继续输出后面的内容，不要重复已经输出的内容，也不要说废话。"
                         })
                         continue

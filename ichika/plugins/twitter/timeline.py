@@ -11,6 +11,7 @@ import random
 import re
 from pathlib import Path
 from ichika.utils.llm_translator import translate_tweet_text
+from ichika.utils.media_processing import async_download_video
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -213,8 +214,15 @@ async def _do_timeline() -> None:
                         msg = Message(MessageSegment.text(msg_text))
                         for img_url in imgs[:4]:  # 最多发4张
                             msg += MessageSegment.image(img_url)
+                        proxy = cfg_get("twitter.proxy")
                         for video_url in videos[:4]:
-                            msg += MessageSegment.video(video_url)
+                            logger.info(f"timeline 提取到视频链接: {video_url[:120]}")
+                            local_path = await async_download_video(video_url, proxy=proxy)
+                            if local_path:
+                                logger.info(f"timeline 视频下载成功: {local_path}")
+                                msg += MessageSegment.video(local_path)
+                            else:
+                                logger.warning(f"timeline 视频下载失败，跳过: {video_url[:120]}")
                         await bot.send_group_msg(group_id=group_id, message=msg)
                     else:
                         await bot.send_group_msg(group_id=group_id, message=msg_text)

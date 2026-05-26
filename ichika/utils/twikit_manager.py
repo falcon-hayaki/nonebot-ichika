@@ -183,14 +183,23 @@ class TwikitManager:
                 if url:
                     tweet_data['imgs'].append(url)
             elif media_type in ('video', 'animated_gif'):
+                logger.debug(f"发现视频/GIF媒体, type={media_type}, has video_info={hasattr(m, 'video_info')}")
                 streams = getattr(m, 'streams', None)
                 if streams:
+                    logger.debug(f"streams 数量: {len(streams)}, content_types: {[getattr(s, 'content_type', '?') for s in streams]}")
                     mp4_streams = [s for s in streams if getattr(s, 'content_type', '') == 'video/mp4']
                     if mp4_streams:
                         best = max(mp4_streams, key=lambda s: getattr(s, 'bitrate', 0) or 0)
                         url = getattr(best, 'url', None)
                         if url:
+                            logger.info(f"提取到视频URL: {url[:120]}, bitrate={getattr(best, 'bitrate', '?')}")
                             tweet_data['videos'].append(url)
+                        else:
+                            logger.warning("mp4 stream 存在但 url 为空")
+                    else:
+                        logger.warning(f"未找到 video/mp4 stream, 可用类型: {[getattr(s, 'content_type', '?') for s in streams]}")
+                else:
+                    logger.warning(f"视频媒体无 streams 属性, 媒体数据keys: {list(m._data.keys()) if hasattr(m, '_data') else 'N/A'}")
 
         try:
             retweeted = getattr(tweet, 'retweeted_tweet', None)

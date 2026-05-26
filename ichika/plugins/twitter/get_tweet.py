@@ -12,6 +12,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Messa
 from ichika.config import get as cfg_get
 from ichika.utils.twikit_manager import TwikitManager
 from ichika.utils.llm_translator import translate_tweet_text
+from ichika.utils.media_processing import async_download_video
 
 _URL_PATTERN = re.compile(
     r"https?://(?:x\.com|twitter\.com)/\w+/status/(\d+)"
@@ -96,8 +97,17 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
     msg = Message(MessageSegment.text(summary))
     for img_url in imgs[:4]:
         msg += MessageSegment.image(img_url)
+
+    # 视频：先下载到本地再发送
+    proxy = cfg_get("twitter.proxy")
     for video_url in videos[:4]:
-        msg += MessageSegment.video(video_url)
+        logger.info(f"get_tweet 提取到视频链接: {video_url[:120]}")
+        local_path = await async_download_video(video_url, proxy=proxy)
+        if local_path:
+            logger.info(f"get_tweet 视频下载成功，发送: {local_path}")
+            msg += MessageSegment.video(local_path)
+        else:
+            logger.warning(f"get_tweet 视频下载失败，跳过: {video_url[:120]}")
 
     try:
         await get_tweet_matcher.send(msg)

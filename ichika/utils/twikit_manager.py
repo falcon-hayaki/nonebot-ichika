@@ -186,8 +186,16 @@ class TwikitManager:
                 logger.debug(f"发现视频/GIF媒体, type={media_type}, has video_info={hasattr(m, 'video_info')}")
                 streams = getattr(m, 'streams', None)
                 if streams:
-                    logger.debug(f"streams 数量: {len(streams)}, content_types: {[getattr(s, 'content_type', '?') for s in streams]}")
-                    mp4_streams = [s for s in streams if getattr(s, 'content_type', '') == 'video/mp4']
+                    # twikit bug: Stream.content_type 用 'content-type' 但 API 返回 'content_type'
+                    # 需要同时检查两种 key
+                    def _get_ct(s):
+                        ct = getattr(s, 'content_type', None)
+                        if ct is None and hasattr(s, '_data'):
+                            ct = s._data.get('content_type', '')
+                        return ct or ''
+
+                    logger.debug(f"streams 数量: {len(streams)}, content_types: {[_get_ct(s) for s in streams]}")
+                    mp4_streams = [s for s in streams if _get_ct(s) == 'video/mp4']
                     if mp4_streams:
                         best = max(mp4_streams, key=lambda s: getattr(s, 'bitrate', 0) or 0)
                         url = getattr(best, 'url', None)
@@ -197,7 +205,7 @@ class TwikitManager:
                         else:
                             logger.warning("mp4 stream 存在但 url 为空")
                     else:
-                        logger.warning(f"未找到 video/mp4 stream, 可用类型: {[getattr(s, 'content_type', '?') for s in streams]}")
+                        logger.warning(f"未找到 video/mp4 stream, 可用类型: {[_get_ct(s) for s in streams]}")
                 else:
                     logger.warning(f"视频媒体无 streams 属性, 媒体数据keys: {list(m._data.keys()) if hasattr(m, '_data') else 'N/A'}")
 

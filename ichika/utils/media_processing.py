@@ -41,6 +41,8 @@ async def async_download_video(
     proxy : HTTP 代理地址，例如 http://127.0.0.1:7897
     timeout : 下载超时时间（秒）
     """
+    if not proxy:
+        proxy = None
     try:
         logger.info(f"开始下载视频: {url[:120]}...")
         async with httpx.AsyncClient(

@@ -83,7 +83,7 @@ class TwikitManager:
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        proxy = self.config.get('proxy')
+        proxy = self.config.get('proxy') or None
         self.client = Client(language='en-US', proxy=proxy)
 
         cookie_input = self.config.get('cookie')

@@ -11,7 +11,7 @@ import random
 import re
 from pathlib import Path
 from ichika.utils.llm_translator import translate_tweet_text
-from ichika.utils.media_processing import async_download_video
+from ichika.utils.media_processing import async_download_video, async_convert_mp4_to_gif
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -202,34 +202,54 @@ async def _do_timeline() -> None:
             tweet_type = tweet_data.get("tweet_type", "default")
             imgs: list[str] = tweet_data.get("imgs", [])
             videos: list[str] = tweet_data.get("videos", [])
+            gifs: list[str] = tweet_data.get("gifs", [])
 
             if tweet_type == "retweet":
                 rt_data = tweet_data.get("retweet_data", {}).get("data", {})
                 imgs = rt_data.get("imgs", imgs)
                 videos = rt_data.get("videos", videos)
+                gifs = rt_data.get("gifs", gifs)
 
-            # 下载该推文的视频（最多4个）
+            proxy = cfg_get("twitter.proxy")
+
+            # 下载普通视频（最多4个）
             local_videos = []
-            if videos:
-                proxy = cfg_get("twitter.proxy")
-                for video_url in videos[:4]:
-                    logger.info(f"timeline 提取到视频链接: {video_url[:120]}")
-                    local_path = await async_download_video(video_url, proxy=proxy)
-                    if local_path:
-                        logger.info(f"timeline 视频下载成功，加入待发送列表: {local_path}")
-                        local_videos.append(local_path)
+            for video_url in videos[:4]:
+                logger.info(f"timeline 提取到视频链接: {video_url[:120]}")
+                local_path = await async_download_video(video_url, proxy=proxy)
+                if local_path:
+                    logger.info(f"timeline 视频下载成功: {local_path}")
+                    local_videos.append(local_path)
+                else:
+                    logger.warning(f"timeline 视频下载失败，跳过: {video_url[:120]}")
+
+            # 下载 GIF（animated_gif），转换后以图片消息发送
+            local_gifs = []
+            for gif_url in gifs[:4]:
+                logger.info(f"timeline 提取到 GIF 链接: {gif_url[:120]}")
+                mp4_path = await async_download_video(gif_url, proxy=proxy)
+                if mp4_path:
+                    gif_path = await async_convert_mp4_to_gif(mp4_path)
+                    if gif_path:
+                        logger.info(f"timeline GIF 转换成功: {gif_path}")
+                        local_gifs.append(gif_path)
                     else:
-                        logger.warning(f"timeline 视频下载失败，跳过: {video_url[:120]}")
+                        logger.warning("timeline GIF 转换失败，退化为视频发送")
+                        local_videos.append(mp4_path)
+                else:
+                    logger.warning(f"timeline GIF 下载失败，跳过: {gif_url[:120]}")
 
             try:
                 for group_id in groups:
-                    if imgs or local_videos:
+                    if imgs or local_videos or local_gifs:
                         msg = Message(MessageSegment.text(msg_text))
                         for img_url in imgs[:4]:  # 最多发4张
                             msg += MessageSegment.image(img_url)
+                        for gif_path in local_gifs:
+                            msg += MessageSegment.image(f"file://{gif_path}")
                         await bot.send_group_msg(group_id=group_id, message=msg)
                         for local_path in local_videos:
-                            await bot.send_group_msg(group_id=group_id, message=Message(MessageSegment.video(local_path)))
+                            await bot.send_group_msg(group_id=group_id, message=Message(MessageSegment.video(f"file://{local_path}")))
                     else:
                         await bot.send_group_msg(group_id=group_id, message=msg_text)
             except Exception as e:

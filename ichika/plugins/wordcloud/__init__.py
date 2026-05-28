@@ -4,6 +4,13 @@
 - 每天 00:38 北京时间生成词云并推送到启用的群
 配置文件: resources/wordcloud/group_enable.json -> [群ID, ...]
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="词云",
+    description="自动记录群聊天，每日凌晙00:38 推送词云",
+    usage="全自动运行，无需触发。每天 00:38 向启用群推送当日聊天词云。需要记录的群联系 hayaki 手动添加到列表。",
+)
 import asyncio
 import base64
 import json

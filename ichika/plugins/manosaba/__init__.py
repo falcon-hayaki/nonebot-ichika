@@ -2,6 +2,17 @@
 魔法裁判贴图生成器
 触发: 魔裁 <角色名> <内容> / manosaba <角色名> <内容>
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="魔裁贴图",
+    description="生成魔法少女裁判风格贴图",
+    usage=(
+        "魔裁 <角色名> <内容>        —— 生成贴图\n"
+        "魔裁 随机 <内容>           —— 随机角色\n"
+        "manosaba <角色名> <内容>  —— 同上"
+    ),
+)
 import base64
 import os
 import random

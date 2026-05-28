@@ -3,6 +3,16 @@
 扔漂流瓶: 扔漂流瓶 <内容>（可附图片）
 捡漂流瓶: 捡漂流瓶
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="漂流瓶",
+    description="跨群扔💩",
+    usage=(
+        "扔漂流瓶 <内容>  —— 扔出一个漂流瓶（可附图片）\n"
+        "捡漂流瓶        —— 随机捡一个漂流瓶"
+    ),
+)
 import base64
 import json
 import logging

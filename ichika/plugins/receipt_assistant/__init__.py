@@ -1,3 +1,14 @@
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="小票识别翻译",
+    description="AI 识别并翻译小票内容，支持多语言小票",
+    usage=(
+        "一花小票  —— 识别并翻译小票（附图片或回复含小票图片的消息）"
+    ),
+    extra={"hidden": True},
+)
+
 from nonebot import on_keyword, require
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment, Message
 from nonebot.log import logger

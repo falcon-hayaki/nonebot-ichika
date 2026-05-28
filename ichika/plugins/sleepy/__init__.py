@@ -2,6 +2,14 @@
 Hayaki 状态查询
 触发词: #hayaki / hayaki状态 / hayaki似了没
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="Hayaki 状态",
+    description="查询 Hayaki 的在线状态",
+    usage="#hayaki / hayaki状态 / hayaki似了没  —— 查询 Hayaki 当前状态",
+    extra={"hidden": True},
+)
 import httpx
 
 from nonebot import on_keyword, logger

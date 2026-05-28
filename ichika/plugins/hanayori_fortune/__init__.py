@@ -2,6 +2,13 @@
 花より运势 (Hanayori Fortune) 插件
 触发词: 抽签 / 抽签签
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="花寄运势",
+    description="每日抽签，查看今日运势（同一天结果相同）",
+    usage="抽签 / 抽签签  —— 抽取今日运势卡",
+)
 import base64
 import json
 import random

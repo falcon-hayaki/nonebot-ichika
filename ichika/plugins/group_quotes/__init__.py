@@ -3,6 +3,16 @@
 /save <key> [图片]  —— 保存图片语录，key 为自定义关键字
 /quote <key>       —— 随机调出某 key 对应的一条语录
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="群友语录",
+    description="保存并随机回放群友语录图片",
+    usage=(
+        "/save <key> [图片]  —— 保存语录（附图片或回复含图片的消息）\n"
+        "/quote <key>        —— 随机调出该关键字的语录"
+    ),
+)
 import base64
 import json
 import logging

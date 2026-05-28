@@ -3,6 +3,16 @@
 触发词: 帮我选 / !c
 用法: 帮我选 选项1 选项2 选项3
 """
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="帮我选",
+    description="帮你从多个选项中随机选择一个",
+    usage=(
+        "帮我选 选项1 选项2 ...  —— 随机选一个（空格或顿号分隔）\n"
+        "!c 选项1 选项2 ...    —— 同上"
+    ),
+)
 import random
 import re
 

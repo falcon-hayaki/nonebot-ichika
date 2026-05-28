@@ -5,16 +5,17 @@
 """
 from nonebot.plugin import PluginMetadata, get_loaded_plugins
 from nonebot import on_command
+from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11 import MessageEvent, Message
 from nonebot.params import CommandArg
 
 __plugin_meta__ = PluginMetadata(
     name="帮助",
     description="查看所有可用指令",
-    usage="/help          —— 列出所有插件\n/help <插件名>  —— 查看指定插件的详细用法",
+    usage="@一花 help          —— 列出所有插件\n@一花 help <插件名>  —— 查看指定插件的详细用法",
 )
 
-help_matcher = on_command("help", aliases={"帮助", "菜单"}, priority=1, block=True)
+help_matcher = on_command("help", aliases={"帮助", "菜单"}, rule=to_me(), priority=1, block=True)
 
 # 不希望出现在 /help 列表中的第三方插件模块名（精确匹配）
 _HIDDEN_MODULES: frozenset[str] = frozenset({

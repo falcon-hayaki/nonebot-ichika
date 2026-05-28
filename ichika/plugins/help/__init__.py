@@ -1,6 +1,6 @@
 """
 帮助插件
-触发: /help [插件名]
+触发: @一花 help [插件名]
 列出所有已加载插件及其用法
 """
 from nonebot.plugin import PluginMetadata, get_loaded_plugins
@@ -17,7 +17,7 @@ __plugin_meta__ = PluginMetadata(
 
 help_matcher = on_command("help", aliases={"帮助", "菜单"}, rule=to_me(), priority=1, block=True)
 
-# 不希望出现在 /help 列表中的第三方插件模块名（精确匹配）
+# 不希望出现在 @一花 help 列表中的第三方插件模块名（精确匹配）
 _HIDDEN_MODULES: frozenset[str] = frozenset({
     "nonebot_plugin_status",
     "nonebot_plugin_apscheduler",
@@ -63,7 +63,7 @@ async def handle_help(event: MessageEvent, args: Message = CommandArg()) -> None
         if matched is None:
             await help_matcher.finish(
                 f"找不到插件「{query}」\n"
-                "发送 /help 查看所有可用插件"
+                "发送 @一花 help 查看所有可用插件"
             )
             return
 
@@ -88,8 +88,8 @@ async def handle_help(event: MessageEvent, args: Message = CommandArg()) -> None
 
     lines += [
         "",
-        "发送 /help <功能名> 查看详细用法",
-        "   例：/help 帮我选",
+        "发送 @一花 help <功能名> 查看详细用法",
+        "   例：@一花 help 帮我选",
     ]
 
     await help_matcher.finish("\n".join(lines))

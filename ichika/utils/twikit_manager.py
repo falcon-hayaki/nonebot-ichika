@@ -174,6 +174,7 @@ class TwikitManager:
             'created_at': tweet.created_at,
             'imgs': [],
             'videos': [],
+            'gifs': [],  # animated_gif 类型媒体的视频链接，需下载后转 GIF
         }
 
         for m in (tweet.media or []):
@@ -200,8 +201,11 @@ class TwikitManager:
                         best = max(mp4_streams, key=lambda s: getattr(s, 'bitrate', 0) or 0)
                         url = getattr(best, 'url', None)
                         if url:
-                            logger.info(f"提取到视频URL: {url[:120]}, bitrate={getattr(best, 'bitrate', '?')}")
-                            tweet_data['videos'].append(url)
+                            logger.info(f"提取到{'GIF' if media_type == 'animated_gif' else '视频'}URL: {url[:120]}, bitrate={getattr(best, 'bitrate', '?')}")
+                            if media_type == 'animated_gif':
+                                tweet_data['gifs'].append(url)
+                            else:
+                                tweet_data['videos'].append(url)
                         else:
                             logger.warning("mp4 stream 存在但 url 为空")
                     else:

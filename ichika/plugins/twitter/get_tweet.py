@@ -12,7 +12,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Messa
 from ichika.config import get as cfg_get
 from ichika.utils.twikit_manager import TwikitManager
 from ichika.utils.llm_translator import translate_tweet_text
-from ichika.utils.media_processing import async_download_video
+from ichika.utils.media_processing import async_download_video, async_convert_mp4_to_gif
 
 _URL_PATTERN = re.compile(
     r"https?://(?:x\.com|twitter\.com)/\w+/status/(\d+)"
@@ -67,6 +67,7 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
     tweet_text = tweet_data.get("text", "")
     imgs: list[str] = tweet_data.get("imgs", [])
     videos: list[str] = tweet_data.get("videos", [])
+    gifs: list[str] = tweet_data.get("gifs", [])
 
     if tweet_type == "retweet":
         rt = tweet_data.get("retweet_data", {})
@@ -76,6 +77,7 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         body = rt_data.get("text", "")
         imgs = rt_data.get("imgs", imgs)
         videos = rt_data.get("videos", videos)
+        gifs = rt_data.get("gifs", gifs)
     elif tweet_type == "quote":
         q = tweet_data.get("quote_data", {})
         q_user = q.get("user_info", {})
@@ -94,25 +96,47 @@ async def handle_get_tweet(event: GroupMessageEvent) -> None:
         
     summary = f"{header}\n{body}"
 
-    # 视频：先下载到本地
-    local_videos = []
     proxy = cfg_get("twitter.proxy")
+
+    # 普通视频：下载到本地后以 video 消息发送
+    local_videos = []
     for video_url in videos[:4]:
         logger.info(f"get_tweet 提取到视频链接: {video_url[:120]}")
         local_path = await async_download_video(video_url, proxy=proxy)
         if local_path:
-            logger.info(f"get_tweet 视频下载成功，加入待发送列表: {local_path}")
+            logger.info(f"get_tweet 视频下载成功: {local_path}")
             local_videos.append(local_path)
         else:
             logger.warning(f"get_tweet 视频下载失败，跳过: {video_url[:120]}")
 
+    # GIF（animated_gif）：下载 mp4 后转换为 GIF，以 image 消息发送
+    local_gifs = []
+    for gif_url in gifs[:4]:
+        logger.info(f"get_tweet 提取到 GIF 链接: {gif_url[:120]}")
+        mp4_path = await async_download_video(gif_url, proxy=proxy)
+        if mp4_path:
+            gif_path = await async_convert_mp4_to_gif(mp4_path)
+            if gif_path:
+                logger.info(f"get_tweet GIF 转换成功: {gif_path}")
+                local_gifs.append(gif_path)
+            else:
+                # ffmpeg 不可用时退化为直接发 mp4
+                logger.warning("GIF 转换失败，退化为视频发送")
+                local_videos.append(mp4_path)
+        else:
+            logger.warning(f"get_tweet GIF 下载失败，跳过: {gif_url[:120]}")
+
     msg = Message(MessageSegment.text(summary))
     for img_url in imgs[:4]:
         msg += MessageSegment.image(img_url)
+    # GIF 作为图片消息追加到首条消息
+    for gif_path in local_gifs:
+        msg += MessageSegment.image(f"file://{gif_path}")
 
     try:
         await get_tweet_matcher.send(msg)
         for local_path in local_videos:
-            await get_tweet_matcher.send(MessageSegment.video(local_path))
+            await get_tweet_matcher.send(MessageSegment.video(f"file://{local_path}"))
     except Exception as e:
         logger.warning(f"get_tweet send failed: {e}")
+

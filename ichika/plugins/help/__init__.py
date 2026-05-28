@@ -16,13 +16,24 @@ __plugin_meta__ = PluginMetadata(
 
 help_matcher = on_command("help", aliases={"帮助", "菜单"}, priority=1, block=True)
 
+# 不希望出现在 /help 列表中的第三方插件模块名（精确匹配）
+_HIDDEN_MODULES: frozenset[str] = frozenset({
+    "nonebot_plugin_status",
+    "nonebot_plugin_apscheduler",
+})
+
 
 def _get_plugin_metas() -> list[PluginMetadata]:
     """收集所有已加载插件中声明了 PluginMetadata 的条目，按插件名排序。
-    若插件在 extra 中设置了 hidden=True，则不出现在列表中。"""
+    过滤规则（满足任意一条即隐藏）：
+      1. plugin.module_name 在 _HIDDEN_MODULES 中（屏蔽第三方插件）
+      2. meta.extra 中设置了 hidden=True（自有插件手动隐藏）
+    """
     metas: list[PluginMetadata] = []
     seen_names: set[str] = set()
     for plugin in get_loaded_plugins():
+        if plugin.module_name in _HIDDEN_MODULES:
+            continue
         meta = plugin.metadata
         if meta is None:
             continue
@@ -56,10 +67,10 @@ async def handle_help(event: MessageEvent, args: Message = CommandArg()) -> None
             return
 
         lines = [
-            f"📦 {matched.name}",
-            f"📝 {matched.description}",
+            f"{matched.name}",
+            f"{matched.description}",
             "",
-            "📖 用法：",
+            "用法：",
             matched.usage or "（暂无说明）",
         ]
         await help_matcher.finish("\n".join(lines))
@@ -76,7 +87,7 @@ async def handle_help(event: MessageEvent, args: Message = CommandArg()) -> None
 
     lines += [
         "",
-        "💡 发送 /help <功能名> 查看详细用法",
+        "发送 /help <功能名> 查看详细用法",
         "   例：/help 帮我选",
     ]
 

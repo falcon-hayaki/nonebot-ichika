@@ -111,13 +111,15 @@ async def translate_tweet_text(text: str) -> str:
             {"role": "user", "content": clean_text}
         ],
         "temperature": 0.3,
-        "max_tokens": 512
+        "max_completion_tokens": 512
     }
     
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(api_url, json=payload, headers=headers)
-            resp.raise_for_status()
+            if not resp.is_success:
+                logger.warning(f"twitter_llm: HTTP {resp.status_code} - {resp.text}")
+                resp.raise_for_status()
             data = resp.json()
             result = data["choices"][0]["message"]["content"].strip()
 

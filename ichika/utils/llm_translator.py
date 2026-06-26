@@ -5,8 +5,8 @@ from ichika.config import get as cfg_get
 
 
 def is_chinese_text(text: str) -> bool:
-    """初步判定文本是否为中文或无需翻译的符号。
-    如果不含日韩文等明显外文特征，且包含汉字或完全无特定语言字符，则跳过翻译。
+    """判定文本是否主要为中文或无需翻译。
+    使用汉字与英文字母的比例来判断，避免因少量中文标签（如"引用了"）误判。
     """
     if not text.strip():
         return True
@@ -19,19 +19,21 @@ def is_chinese_text(text: str) -> bool:
     if re.search(r'[\uac00-\ud7a3]', text):
         return False
         
-    cjk_matches = re.findall(r'[\u4e00-\u9fff]', text)
-    letters_matches = re.findall(r'[a-zA-Z]', text)
+    cjk_count = len(re.findall(r'[\u4e00-\u9fff]', text))
+    latin_count = len(re.findall(r'[a-zA-Z]', text))
     
-    # 如果完全没有汉字且有英文字母，可能是纯英文，需要翻译
-    if len(letters_matches) > 0 and len(cjk_matches) == 0:
+    # 纯英文：有英文字母但没有汉字
+    if latin_count > 0 and cjk_count == 0:
+        return False
+
+    # 混合内容：英文字母数量是汉字的 3 倍以上，视为需要翻译的外文
+    # 例如"引用了"(3字) + 大段英文(100+字母) → 应当翻译
+    if latin_count > 0 and cjk_count > 0 and latin_count > cjk_count * 3:
         return False
         
-    # 如果含有汉字且没有假名，大概率为中文推文
-    if len(cjk_matches) > 0:
-        return True
-        
-    # 只有符号、表情或数字的场合，不需要翻译
+    # 汉字为主，或只有符号/表情/数字
     return True
+
 
 
 def is_garbled_output(text: str) -> bool:

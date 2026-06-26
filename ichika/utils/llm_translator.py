@@ -72,14 +72,14 @@ async def translate_tweet_text(text: str) -> str:
     """使用 Gemini LLM 翻译推文，发生异常或条件不满足时返回空字符串"""
     if not text.strip():
         return ""
-        
-    # 如果前端探测认为是中文，就不消耗API了
-    if is_chinese_text(text):
-        return ""
 
     # 预处理，去除链接等干扰
     clean_text = preprocess_tweet(text)
     if not clean_text:
+        return ""
+
+    # 如果前端探测认为是中文，就不消耗API了
+    if is_chinese_text(clean_text):
         return ""
 
     api_key = cfg_get("twitter.llm_api_key")
@@ -111,7 +111,7 @@ async def translate_tweet_text(text: str) -> str:
             {"role": "user", "content": clean_text}
         ],
         "temperature": 0.3,
-        "max_completion_tokens": 512
+        "max_tokens": 512
     }
     
     try:

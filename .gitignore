@@ -165,3 +165,6 @@ logs/
 
 # VSCode
 .vscode/
+
+# Agents
+AGENTS.md

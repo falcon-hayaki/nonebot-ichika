@@ -94,7 +94,9 @@ async def translate_tweet_text(text: str) -> str:
         cfg_get("twitter.llm_api_url")
         or "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     )
-    model = cfg_get("twitter.llm_model") or "gemini-3.1-flash-lite"
+    # Groq 免费/长期稳定模型推荐：llama-3.1-8b-instant
+    # 旧的 llama-3.3-70b-versatile 早已不再是稳定的默认值，容易因为模型池调整直接返回 404/invalid model。
+    model = cfg_get("twitter.llm_model") or "llama-3.1-8b-instant"
 
     prompt = (
         "你是一个精通日语和中文二次元网络用语的同传翻译，请将以下推文翻译成自然流畅的中文，"

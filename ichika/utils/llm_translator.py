@@ -2,6 +2,10 @@ import re
 import httpx
 from nonebot import logger
 from ichika.config import get as cfg_get
+from ichika.utils.openrouter_free_models import (
+    get_openrouter_free_models,
+    record_openrouter_model_result,
+)
 
 
 def is_chinese_text(text: str) -> bool:
@@ -97,6 +101,14 @@ async def translate_tweet_text(text: str) -> str:
     # Groq 当前组织限额页展示的免费候选模型已从旧 Llama 名称转向 openai/gpt-oss-20b 等新模型；
     # 直接使用当前页面可见的模型名，避免继续指向已从免费池中下线的老模型。
     model = cfg_get("twitter.llm_model") or "openai/gpt-oss-20b"
+    is_openrouter = "openrouter.ai" in api_url
+    models = [model]
+    if is_openrouter:
+        free_models = await get_openrouter_free_models(preferred=model)
+        if model.endswith(":free"):
+            models = free_models or [model]
+        else:
+            models = [model, *free_models]
 
     prompt = (
         "你是一个精通日语和中文二次元网络用语的同传翻译，请将以下推文翻译成自然流畅的中文，"
@@ -120,23 +132,61 @@ async def translate_tweet_text(text: str) -> str:
     
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(api_url, json=payload, headers=headers)
-            if not resp.is_success:
-                logger.warning(f"twitter_llm: HTTP {resp.status_code} - {resp.text}")
-                resp.raise_for_status()
-            data = resp.json()
-            content = data["choices"][0]["message"].get("content")
-            if not isinstance(content, str) or not content.strip():
-                logger.warning("twitter_llm: 响应未包含文本内容")
-                return ""
-            result = content.strip()
+            for index, candidate_model in enumerate(models):
+                payload["model"] = candidate_model
+                try:
+                    resp = await client.post(api_url, json=payload, headers=headers)
+                except httpx.RequestError:
+                    if not is_openrouter:
+                        raise
+                    await record_openrouter_model_result(candidate_model, success=False)
+                    logger.warning(
+                        f"twitter_llm: request failed for {candidate_model}; trying the next model"
+                    )
+                    continue
 
-            # 乱码检测：如果输出异常则丢弃
-            if is_garbled_output(result):
-                logger.warning(f"twitter_llm: 检测到乱码输出，已丢弃。原文: {clean_text[:50]}...")
-                return ""
+                if not resp.is_success:
+                    logger.warning(f"twitter_llm: HTTP {resp.status_code} - {resp.text}")
+                    if not is_openrouter or resp.status_code in (401, 402, 403):
+                        resp.raise_for_status()
+                    await record_openrouter_model_result(
+                        candidate_model,
+                        success=False,
+                        status_code=resp.status_code,
+                    )
+                    if index + 1 < len(models):
+                        logger.warning(f"twitter_llm: trying next free model")
+                        continue
+                    return ""
 
-            return result
+                try:
+                    data = resp.json()
+                    content = data["choices"][0]["message"].get("content")
+                except (KeyError, IndexError, TypeError, ValueError):
+                    if not is_openrouter:
+                        raise
+                    await record_openrouter_model_result(candidate_model, success=False)
+                    continue
+                if not isinstance(content, str) or not content.strip():
+                    logger.warning("twitter_llm: 响应未包含文本内容")
+                    if is_openrouter:
+                        await record_openrouter_model_result(candidate_model, success=False)
+                        continue
+                    return ""
+                result = content.strip()
+
+                # 乱码检测：如果输出异常则丢弃
+                if is_garbled_output(result):
+                    logger.warning(f"twitter_llm: 检测到乱码输出，已丢弃。原文: {clean_text[:50]}...")
+                    if is_openrouter:
+                        await record_openrouter_model_result(candidate_model, success=False)
+                        continue
+                    return ""
+
+                if is_openrouter:
+                    await record_openrouter_model_result(candidate_model, success=True)
+                return result
+            return ""
     except Exception as e:
         logger.warning(f"twitter_llm: LLM translation failed: {e}")
         return ""

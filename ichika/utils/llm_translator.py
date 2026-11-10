@@ -125,7 +125,11 @@ async def translate_tweet_text(text: str) -> str:
                 logger.warning(f"twitter_llm: HTTP {resp.status_code} - {resp.text}")
                 resp.raise_for_status()
             data = resp.json()
-            result = data["choices"][0]["message"]["content"].strip()
+            content = data["choices"][0]["message"].get("content")
+            if not isinstance(content, str) or not content.strip():
+                logger.warning("twitter_llm: 响应未包含文本内容")
+                return ""
+            result = content.strip()
 
             # 乱码检测：如果输出异常则丢弃
             if is_garbled_output(result):
